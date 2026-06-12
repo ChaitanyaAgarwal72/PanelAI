@@ -1,0 +1,29 @@
+# Research Bias Knowledge Base
+
+## 1. Selection Bias
+*   **Definition:** Occurs when individuals or groups in a study differ systematically from the population of interest, leading to a systematic error in an association or outcome.
+*   **Example:** A study analyzing a new workout app only recruits participants from local gym memberships. This excludes sedentary individuals, rendering the efficacy data skewed and unrepresentative of the broader target population.
+
+## 2. Confirmation Bias
+*   **Definition:** The tendency to search for, interpret, favor, and recall information in a way that confirms one's preexisting beliefs, hypotheses, or expectations.
+*   **Example:** A researcher who strongly believes a specific herbal tea cures insomnia subconsciously over-emphasizes positive patient sleep journals while disregarding journals reporting zero changes in sleep cycles.
+
+## 3. Measurement Bias
+*   **Definition:** A systematic distortion or error that occurs when the tool, instrument, or method used to gather data consistently miscalculates the true value.
+*   **Example:** A blood pressure cuff used throughout a clinical trial is improperly calibrated, systematically recording everyone’s blood pressure as 5 mmHg higher than their true metric.
+
+## 4. Hawthorne Effect
+*   **Definition:** A phenomenon where study participants temporarily alter or improve their natural behavior simply because they are fully aware that they are being observed.
+*   **Example:** Hospital staff members drastically increase their hand-sanitizing compliance rates only when a quality control investigator is standing in the ward with a clipboard.
+
+## 5. Recall Bias
+*   **Definition:** A systematic error caused by differences in the accuracy, completeness, or vividness of past recollections provided by study participants.
+*   **Example:** Parents of children diagnosed with a rare condition are significantly more likely to minutely scrutinize and recall minor dietary changes or illnesses during pregnancy compared to parents of healthy control children.
+
+## 6. Sampling Bias
+*   **Definition:** A specific type of selection bias where the technique used to collect a sample unintentionally makes certain members of the intended population less likely to be included than others.
+*   **Example:** Conducting a public opinion poll regarding digital literacy exclusively through automated landline phone calls, which effectively leaves out younger demographics who solely utilize mobile phones.
+
+## 7. Observer Bias
+*   **Definition:** A systematic discrepancy or deviation from the truth introduced during the observation, recording, or scoring stage because of a researcher's expectations.
+*   **Example:** An unblinded physician evaluating patient mobility after surgery scores patients who received the experimental drug more favorably because the physician knows who received the active intervention.

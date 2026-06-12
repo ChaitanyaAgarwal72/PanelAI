@@ -1,0 +1,7 @@
+streamlit
+crewai
+reportlab
+pandas
+python-dotenv
+chromadb
+google-genai
