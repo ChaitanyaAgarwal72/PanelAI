@@ -44,6 +44,16 @@ def main():
                 st.subheader("Final IRB Report")
                 st.markdown(final_report)
                 
+                from utils.pdf_generator import markdown_to_pdf_bytes
+                pdf_data = markdown_to_pdf_bytes(final_report)
+                
+                st.download_button(
+                    label="Download Report as PDF",
+                    data=pdf_data,
+                    file_name="IRB_Final_Report.pdf",
+                    mime="application/pdf"
+                )
+                
             except Exception as e:
                 st.error(f"An error occurred during the review process: {str(e)}")
 
