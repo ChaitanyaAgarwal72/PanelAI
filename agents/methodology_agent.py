@@ -12,7 +12,7 @@ def create_methodology_agent(llm=None):
 
                 Instructions:
                 1. Query your knowledge base for relevant concepts: e.g., "sampling bias", "power analysis", "STROBE sample size", "confounding".
-                2. Identify methodological flaws based ONLY on retrieved content.
+                2. Identify methodological flaws based ONLY on retrieved content. CRITICAL RULE: You MUST ONLY cite and use sources that you have successfully retrieved from your knowledge base. DO NOT bring in outside knowledge. DO NOT hallucinate rules or guidelines that are not present in your retrieved text.
                 3. For each concern, cite the source (e.g., "Bias compendium - Selection bias", "STROBE item 7 - sample size", "Power guide - effect size").
                 4. If the study design is not covered by the STROBE checklist (e.g., experimental RCT), note that the checklist may not fully apply but still flag general issues like bias and power.
                 5. Output JSON with risk_level, concerns, and required_modifications."""

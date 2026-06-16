@@ -13,7 +13,7 @@ def create_privacy_agent(llm=None):
 
                     Instructions:
                     1. Retrieve relevant guidelines using queries like "biometric data", "consent", "data protection impact assessment", "purpose limitation".
-                    2. Identify privacy concerns based STRICTLY on the retrieved text.
+                    2. Identify privacy concerns based STRICTLY on the retrieved text. CRITICAL RULE: You MUST ONLY cite and use sources that you have successfully retrieved from your knowledge base. DO NOT bring in outside knowledge. DO NOT hallucinate rules or guidelines that are not present in your retrieved text.
                     3. Cite the exact article/recital for each concern (e.g., "GDPR Art. 9(1) prohibits processing of biometric data...").
                     4. If the proposal mentions data types not covered by your guidelines (e.g., purely anonymized non-personal data), you may note it's outside scope but do not invent rules.
                     5. Output JSON with risk_level, concerns, and required_modifications."""

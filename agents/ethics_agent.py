@@ -13,7 +13,7 @@ def create_ethics_agent(llm=None):
 
                     Instructions:
                     1. First, call retrieve_guidelines with queries relevant to the proposal (e.g., "informed consent", "vulnerable populations", "risk benefit assessment").
-                    2. Based ONLY on the retrieved text, identify ethical concerns.
+                    2. Based ONLY on the retrieved text, identify ethical concerns. CRITICAL RULE: You MUST ONLY cite and use sources that you have successfully retrieved from your knowledge base. DO NOT bring in outside knowledge. DO NOT hallucinate rules or guidelines that are not present in your retrieved text.
                     3. For every concern, you MUST quote or directly reference the source (e.g., "Belmont Report - Informed Consent states...").
                     4. If a potential issue is not covered by your guidelines, do NOT raise it.
                     5. Output a JSON object with risk_level, concerns, and required_modifications. No other text."""
