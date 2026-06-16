@@ -1,21 +1,18 @@
 import os
 import chromadb
-from langchain.tools import tool
+from crewai.tools import BaseTool
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHROMA_DB_DIR = os.path.join(BASE_DIR, "knowledge_base", "chroma_db")
 
-def get_retrieve_guidelines_tool(collection_name: str):
-    """Factory function to create a retrieve_guidelines tool for a specific collection."""
-    
-    @tool("retrieve_guidelines")
-    def retrieve_guidelines(query: str) -> str:
-        """
-        Queries the designated guidelines collection and returns the most relevant chunks.
-        Always provide a specific search query.
-        """
-        client = chromadb.PersistentClient(path=os.path.join(CHROMA_DB_DIR, collection_name))
-        collection_db_name = f"{collection_name}_kb"
+class RetrieveGuidelinesTool(BaseTool):
+    name: str = "retrieve_guidelines"
+    description: str = "Queries the designated guidelines collection and returns the most relevant chunks. Always provide a specific search query."
+    collection_name: str = ""
+
+    def _run(self, query: str) -> str:
+        client = chromadb.PersistentClient(path=os.path.join(CHROMA_DB_DIR, self.collection_name))
+        collection_db_name = f"{self.collection_name}_kb"
         collection = client.get_collection(name=collection_db_name)
         
         results = collection.query(
@@ -32,5 +29,7 @@ def get_retrieve_guidelines_tool(collection_name: str):
             combined_results.append(f"Source: {source}\nContent: {doc}")
             
         return "\n\n---\n\n".join(combined_results)
-        
-    return retrieve_guidelines
+
+def get_retrieve_guidelines_tool(collection_name: str):
+    """Factory function to create a retrieve_guidelines tool for a specific collection."""
+    return RetrieveGuidelinesTool(collection_name=collection_name)
