@@ -24,9 +24,12 @@ def main():
         st.stop()
         
     llm = LLM(
-        model="gemini/gemini-2.5-flash",
+        model="gemini/gemini-3.1-flash-lite",
         api_key=api_key
     )
+
+    if "final_report" not in st.session_state:
+        st.session_state.final_report = None
 
     proposal_text = st.text_area("Research Proposal Details", height=300, placeholder="Enter the methodology, participant details, data handling, etc...")
 
@@ -38,24 +41,24 @@ def main():
         with st.spinner("Agents are analyzing the proposal. This may take a minute or two..."):
             try:
                 final_report = asyncio.run(run_review_workflow(proposal_text, llm))
-                
+                st.session_state.final_report = final_report
                 st.success("Review Complete!")
-                
-                st.subheader("Final IRB Report")
-                st.markdown(final_report)
-                
-                from utils.pdf_generator import markdown_to_pdf_bytes
-                pdf_data = markdown_to_pdf_bytes(final_report)
-                
-                st.download_button(
-                    label="Download Report as PDF",
-                    data=pdf_data,
-                    file_name="IRB_Final_Report.pdf",
-                    mime="application/pdf"
-                )
-                
             except Exception as e:
                 st.error(f"An error occurred during the review process: {str(e)}")
+
+    if st.session_state.final_report:
+        st.subheader("Final IRB Report")
+        st.markdown(st.session_state.final_report)
+        
+        from utils.pdf_generator import markdown_to_pdf_bytes
+        pdf_data = markdown_to_pdf_bytes(st.session_state.final_report)
+        
+        st.download_button(
+            label="Download Report as PDF",
+            data=pdf_data,
+            file_name="IRB_Final_Report.pdf",
+            mime="application/pdf"
+        )
 
 if __name__ == "__main__":
     main()

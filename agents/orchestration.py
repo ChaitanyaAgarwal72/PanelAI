@@ -133,6 +133,9 @@ Output a brief paragraph directly responding, and state whether you maintain or 
         print("No conflicts detected.")
         
     print("Compiling final report with Chair Agent...")
+    from datetime import datetime
+    current_date = datetime.now().strftime("%B %d, %Y")
+
     synthesis_prompt = f"""You are the Chair Agent. Here are the initial reviews from the specialists:
 
 Ethics Reviewer: {json.dumps(results['Ethics Reviewer'])}
@@ -147,10 +150,13 @@ Methodology Reviewer: {json.dumps(results['Methodology Reviewer'])}
             
     synthesis_prompt += """\n
 Please compile the final report.
+Today's date is {CURRENT_DATE_PLACEHOLDER}. Include a report header with this exact placeholder so I can inject the real date later.
 Calculate the final verdict by taking a majority vote on the risk level (using any updated levels from the conflict resolution if they lowered their risk).
 Preserve any unresolved differences as a "Minority Dissent" section.
 The final report must be in Markdown format with an Executive Summary, a Risk Table, Required Modifications, and Citations."""
 
     final_report = await run_agent_task(chair_agent, synthesis_prompt, expected_output="A comprehensive Markdown report")
+
+    final_report = final_report.replace("{CURRENT_DATE_PLACEHOLDER}", current_date)
     
     return final_report
