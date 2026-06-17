@@ -1,3 +1,4 @@
+from pydantic import PrivateAttr
 import os
 import chromadb
 from crewai.tools import BaseTool
@@ -9,6 +10,7 @@ class RetrieveGuidelinesTool(BaseTool):
     name: str = "retrieve_guidelines"
     description: str = "Queries the designated guidelines collection and returns the most relevant chunks. Always provide a specific search query."
     collection_name: str = ""
+    _tracker = PrivateAttr(default=None)
 
     def _run(self, query: str) -> str:
         client = chromadb.PersistentClient(path=os.path.join(CHROMA_DB_DIR, self.collection_name))
@@ -20,16 +22,21 @@ class RetrieveGuidelinesTool(BaseTool):
             n_results=3
         )
         
-        if not results['documents'] or not results['documents'][0]:
-            return "No relevant guidelines found."
-            
         combined_results = []
-        for i, doc in enumerate(results['documents'][0]):
-            source = results['metadatas'][0][i].get('source', 'Unknown Source') if results['metadatas'] else 'Unknown Source'
-            combined_results.append(f"Source: {source}\nContent: {doc}")
+        if results['documents'] and results['documents'][0]:
+            for i, doc in enumerate(results['documents'][0]):
+                source = results['metadatas'][0][i].get('source', 'Unknown Source') if results['metadatas'] else 'Unknown Source'
+                combined_results.append(f"Source: {source}\nContent: {doc}")
+        
+        final_result = "\n\n---\n\n".join(combined_results) if combined_results else "No relevant guidelines found."
+        
+        if self._tracker:
+            self._tracker.on_rag_query(self.collection_name, query, final_result)
             
-        return "\n\n---\n\n".join(combined_results)
+        return final_result
 
-def get_retrieve_guidelines_tool(collection_name: str):
+def get_retrieve_guidelines_tool(collection_name: str, tracker=None):
     """Factory function to create a retrieve_guidelines tool for a specific collection."""
-    return RetrieveGuidelinesTool(collection_name=collection_name)
+    tool = RetrieveGuidelinesTool(collection_name=collection_name)
+    tool._tracker = tracker
+    return tool

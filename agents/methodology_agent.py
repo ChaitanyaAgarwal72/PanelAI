@@ -2,11 +2,11 @@ from crewai import Agent
 import os
 from utils.tools import get_retrieve_guidelines_tool
 
-def create_methodology_agent(llm=None):
+def create_methodology_agent(llm=None, tracker=None):
     """
     Creates and returns the Methodology Agent.
     """
-    retrieve_tool = get_retrieve_guidelines_tool("methodology")
+    retrieve_tool = get_retrieve_guidelines_tool("methodology", tracker=tracker)
     
     backstory = """You are a Methodology Reviewer on an IRB. Your knowledge is strictly limited to the documents you retrieve: a bias compendium, the STROBE checklist for observational studies, and a statistical power guide.
 

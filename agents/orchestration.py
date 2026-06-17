@@ -71,13 +71,17 @@ def detect_conflicts(results):
                 })
     return conflicts
 
-async def run_review_workflow(proposal_text, llm=None):
+async def run_review_workflow(proposal_text, llm=None, tracker=None):
     """
     Main orchestration workflow.
     """
-    ethics_agent = create_ethics_agent(llm)
-    privacy_agent = create_privacy_agent(llm)
-    methodology_agent = create_methodology_agent(llm)
+    if tracker:
+        tracker.on_synthesis_start("Initializing Agents...")
+
+    # 1. Initialize Agents
+    ethics_agent = create_ethics_agent(llm, tracker)
+    privacy_agent = create_privacy_agent(llm, tracker)
+    methodology_agent = create_methodology_agent(llm, tracker)
     chair_agent = create_chair_agent(llm)
     
     agents_map = {
@@ -88,7 +92,11 @@ async def run_review_workflow(proposal_text, llm=None):
     
     initial_prompt = f"Review the following research proposal:\n\n{proposal_text}"
     
-    print("Starting initial reviews...")
+    if tracker:
+        tracker.on_agent_status_change("ethics", "⏳ Reviewing proposal...", "⏳")
+        tracker.on_agent_status_change("privacy", "⏳ Reviewing proposal...", "⏳")
+        tracker.on_agent_status_change("methodology", "⏳ Reviewing proposal...", "⏳")
+        
     tasks = [
         run_agent_task(ethics_agent, initial_prompt),
         run_agent_task(privacy_agent, initial_prompt),
@@ -96,23 +104,35 @@ async def run_review_workflow(proposal_text, llm=None):
     ]
     raw_outputs = await asyncio.gather(*tasks)
     
+    if tracker:
+        tracker.on_agent_status_change("ethics", "✅ Review Complete", "✅")
+        tracker.on_agent_status_change("privacy", "✅ Review Complete", "✅")
+        tracker.on_agent_status_change("methodology", "✅ Review Complete", "✅")
+    
     results = {
         "Ethics Reviewer": extract_json(raw_outputs[0]),
         "Data Privacy Reviewer": extract_json(raw_outputs[1]),
         "Methodology Reviewer": extract_json(raw_outputs[2])
     }
     
+    if tracker:
+        tracker.on_synthesis_start("Detecting conflicts...")
     conflicts = detect_conflicts(results)
     conflict_responses = []
     
     if conflicts:
-        print(f"Detected {len(conflicts)} conflict(s). Initiating resolution round...")
+        if tracker:
+            tracker.on_conflict_detected(conflicts)
+            
         resolution_tasks = []
         for conflict in conflicts:
             responder_name = conflict["responder"]
             target_name = conflict["target"]
             responder_agent = agents_map[responder_name]
             
+            if tracker:
+                tracker.on_resolution_start(responder_name, target_name)
+                
             resolution_prompt = f"""You are the {responder_name}. You rated the risk higher than the {target_name}.
 Your original concerns: {json.dumps(conflict['responder_concerns'])}
 The {target_name} gave a lower risk ({conflict['target_initial_risk']}) and raised these points: {json.dumps(conflict['target_concerns'])}.
@@ -129,10 +149,10 @@ Output a brief paragraph directly responding, and state whether you maintain or 
                 "conflict": conflict,
                 "response": resolution_raw_outputs[i]
             })
-    else:
-        print("No conflicts detected.")
+    
+    if tracker:
+        tracker.on_synthesis_start("Compiling Final Report...")
         
-    print("Compiling final report with Chair Agent...")
     from datetime import datetime
     current_date = datetime.now().strftime("%B %d, %Y")
 
@@ -159,4 +179,7 @@ The final report must be in Markdown format with an Executive Summary, a Risk Ta
 
     final_report = final_report.replace("{CURRENT_DATE_PLACEHOLDER}", current_date)
     
+    if tracker:
+        tracker.on_synthesis_start("Report Complete!")
+        
     return final_report

@@ -2,11 +2,11 @@ from crewai import Agent
 import os
 from utils.tools import get_retrieve_guidelines_tool
 
-def create_privacy_agent(llm=None):
+def create_privacy_agent(llm=None, tracker=None):
     """
     Creates and returns the Data Privacy Agent.
     """
-    retrieve_tool = get_retrieve_guidelines_tool("privacy")
+    retrieve_tool = get_retrieve_guidelines_tool("privacy", tracker=tracker)
     
     backstory = """You are a Data Privacy Reviewer on an IRB. Your sole authority comes from the 
                     GDPR articles and recitals provided by your 'retrieve_guidelines' tool.

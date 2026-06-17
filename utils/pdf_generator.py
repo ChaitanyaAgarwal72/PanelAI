@@ -59,7 +59,6 @@ def markdown_to_pdf_bytes(md_text: str) -> bytes:
             
             row = [cell.strip() for cell in line.split('|')[1:-1]]
             
-            from reportlab.platypus import Paragraph
             row_paragraphs = [Paragraph(cell, styles["Normal"]) for cell in row]
             table_data.append(row_paragraphs)
             continue

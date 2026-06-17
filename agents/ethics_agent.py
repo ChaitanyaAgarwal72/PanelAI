@@ -2,11 +2,11 @@ from crewai import Agent
 import os
 from utils.tools import get_retrieve_guidelines_tool
 
-def create_ethics_agent(llm=None):
+def create_ethics_agent(llm=None, tracker=None):
     """
     Creates and returns the Ethics Agent.
     """
-    retrieve_tool = get_retrieve_guidelines_tool("ethics")
+    retrieve_tool = get_retrieve_guidelines_tool("ethics", tracker=tracker)
     
     backstory = """You are an Ethics Reviewer on an institutional review board (IRB). 
                     Your sole knowledge comes from the documents provided via the 'retrieve_guidelines' tool: the Belmont Report and paragraphs from the Declaration of Helsinki.
