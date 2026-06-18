@@ -200,4 +200,4 @@ Do NOT write grouped strings like "GDPR Articles 4, 9, and 35"."""
     if tracker:
         tracker.on_synthesis_start("Report Complete.")
         
-    return final_report, results, final_citations
+    return final_report, results, final_citations, conflict_responses

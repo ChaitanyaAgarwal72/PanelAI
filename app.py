@@ -101,13 +101,29 @@ def main():
         tracker = EventTracker(placeholders, log_container, chair_placeholder)
         
         try:
-            final_report, results, final_citations = asyncio.run(run_review_workflow(proposal_text, llm, tracker))
+            final_report, results, final_citations, conflict_responses = asyncio.run(run_review_workflow(proposal_text, llm, tracker))
             st.session_state.final_report = final_report
             st.session_state.review_results = results
             st.session_state.final_citations = final_citations
+            st.session_state.conflict_responses = conflict_responses
             st.success("Review Complete.")
         except Exception as e:
             st.error(f"An error occurred during the review process: {str(e)}")
+
+    if getattr(st.session_state, "conflict_responses", None):
+        st.subheader("Live Debate Log")
+        for cr in st.session_state.conflict_responses:
+            conflict = cr['conflict']
+            responder = conflict['responder']
+            target = conflict['target']
+            response = cr['response']
+            
+            st.markdown(f"**Conflict Detected:** {responder} ({conflict['responder_initial_risk']}) vs {target} ({conflict['target_initial_risk']})")
+            with st.chat_message("user", avatar="👨‍⚖️"):
+                st.markdown(f"**Chair Agent asks {responder}:** '{target} rated this risk lower. Do you still maintain your high-risk assessment?'")
+            with st.chat_message("assistant", avatar="🤖"):
+                st.markdown(f"**{responder} responds:** '{response}'")
+            st.markdown("---")
 
     if st.session_state.final_report:
         st.subheader("Final IRB Report")
