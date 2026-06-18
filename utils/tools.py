@@ -40,3 +40,38 @@ def get_retrieve_guidelines_tool(collection_name: str, tracker=None):
     tool = RetrieveGuidelinesTool(collection_name=collection_name)
     tool._tracker = tracker
     return tool
+
+_CHROMADB_CLIENTS = {}
+
+def fetch_source_text(citation_query: str) -> str:
+    """
+    Searches across all guideline collections for the specific citation string
+    and returns the best matching chunk to display in the UI modal.
+    """
+    best_doc = "Source text not found in database."
+    highest_score = 999.0
+    
+    collections_info = [
+        ("ethics", "ethics_kb"),
+        ("privacy", "privacy_kb"),
+        ("methodology", "methodology_kb")
+    ]
+    
+    for folder, col_name in collections_info:
+        try:
+            if folder not in _CHROMADB_CLIENTS:
+                _CHROMADB_CLIENTS[folder] = chromadb.PersistentClient(path=os.path.join(CHROMA_DB_DIR, folder))
+            client = _CHROMADB_CLIENTS[folder]
+            
+            col = client.get_collection(name=col_name)
+            results = col.query(query_texts=[citation_query], n_results=1)
+            
+            if results['documents'] and results['documents'][0]:
+                distance = results['distances'][0][0] if 'distances' in results and results['distances'] else 0.0
+                if distance < highest_score:
+                    highest_score = distance
+                    best_doc = results['documents'][0][0]
+        except Exception:
+            continue
+            
+    return best_doc

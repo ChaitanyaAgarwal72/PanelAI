@@ -78,7 +78,6 @@ async def run_review_workflow(proposal_text, llm=None, tracker=None):
     if tracker:
         tracker.on_synthesis_start("Initializing Agents...")
 
-    # 1. Initialize Agents
     ethics_agent = create_ethics_agent(llm, tracker)
     privacy_agent = create_privacy_agent(llm, tracker)
     methodology_agent = create_methodology_agent(llm, tracker)
@@ -93,9 +92,9 @@ async def run_review_workflow(proposal_text, llm=None, tracker=None):
     initial_prompt = f"Review the following research proposal:\n\n{proposal_text}"
     
     if tracker:
-        tracker.on_agent_status_change("ethics", "⏳ Reviewing proposal...", "⏳")
-        tracker.on_agent_status_change("privacy", "⏳ Reviewing proposal...", "⏳")
-        tracker.on_agent_status_change("methodology", "⏳ Reviewing proposal...", "⏳")
+        tracker.on_agent_status_change("ethics", "Reviewing proposal...")
+        tracker.on_agent_status_change("privacy", "Reviewing proposal...")
+        tracker.on_agent_status_change("methodology", "Reviewing proposal...")
         
     tasks = [
         run_agent_task(ethics_agent, initial_prompt),
@@ -105,9 +104,9 @@ async def run_review_workflow(proposal_text, llm=None, tracker=None):
     raw_outputs = await asyncio.gather(*tasks)
     
     if tracker:
-        tracker.on_agent_status_change("ethics", "✅ Review Complete", "✅")
-        tracker.on_agent_status_change("privacy", "✅ Review Complete", "✅")
-        tracker.on_agent_status_change("methodology", "✅ Review Complete", "✅")
+        tracker.on_agent_status_change("ethics", "Review Complete")
+        tracker.on_agent_status_change("privacy", "Review Complete")
+        tracker.on_agent_status_change("methodology", "Review Complete")
     
     results = {
         "Ethics Reviewer": extract_json(raw_outputs[0]),
@@ -172,14 +171,33 @@ Methodology Reviewer: {json.dumps(results['Methodology Reviewer'])}
 Please compile the final report.
 Today's date is {CURRENT_DATE_PLACEHOLDER}. Include a report header with this exact placeholder so I can inject the real date later.
 Calculate the final verdict by taking a majority vote on the risk level (using any updated levels from the conflict resolution if they lowered their risk).
-Preserve any unresolved differences as a "Minority Dissent" section.
-The final report must be in Markdown format with an Executive Summary, a Risk Table, Required Modifications, and Citations."""
+Preserve any unresolved differences as a "Minority Dissent" section. If you must overrule a specialist, use institutional language such as: "The Chair, after reviewing the conflict, determines that the [Risk Level] risk classification must stand due to the severity of regulatory non-compliance."
+The final report must be in Markdown format with an Executive Summary, a Risk Table, Required Modifications, and Citations.
 
-    final_report = await run_agent_task(chair_agent, synthesis_prompt, expected_output="A comprehensive Markdown report")
+IMPORTANT: At the very end of your response, after the markdown report, you MUST output a JSON code block containing an array of strings representing the final list of citations you used in the report. 
+CRITICAL: Do NOT combine or group citations in the JSON list. List each specific article, guideline, or section as a separate, distinct, and highly specific string. 
+For example:
+```json
+{"final_citations": ["GDPR Art. 9(1)", "GDPR Art. 35", "Belmont Report - Informed Consent"]}
+```
+Do NOT write grouped strings like "GDPR Articles 4, 9, and 35"."""
 
+    raw_final_report = await run_agent_task(chair_agent, synthesis_prompt, expected_output="A comprehensive Markdown report ending with a JSON citations block.")
+    
+    final_citations = []
+    final_report = raw_final_report
+    match = re.search(r'```json\s*(.*?)\s*```', raw_final_report, re.DOTALL)
+    if match:
+        try:
+            cit_data = json.loads(match.group(1))
+            final_citations = cit_data.get("final_citations", [])
+            final_report = raw_final_report[:match.start()].strip()
+        except Exception:
+            pass
+            
     final_report = final_report.replace("{CURRENT_DATE_PLACEHOLDER}", current_date)
     
     if tracker:
-        tracker.on_synthesis_start("Report Complete!")
+        tracker.on_synthesis_start("Report Complete.")
         
-    return final_report
+    return final_report, results, final_citations
