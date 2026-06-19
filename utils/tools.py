@@ -65,13 +65,27 @@ def fetch_source_text(citation_query: str) -> str:
             client = _CHROMADB_CLIENTS[folder]
             
             col = client.get_collection(name=col_name)
-            results = col.query(query_texts=[citation_query], n_results=1)
+            results = col.query(query_texts=[citation_query], n_results=5)
             
             if results['documents'] and results['documents'][0]:
-                distance = results['distances'][0][0] if 'distances' in results and results['distances'] else 0.0
-                if distance < highest_score:
-                    highest_score = distance
-                    best_doc = results['documents'][0][0]
+                docs = results['documents'][0]
+                dists = results['distances'][0]
+                
+                import re
+                nums = re.findall(r'\d+', citation_query)
+                selected_doc = docs[0]
+                selected_dist = dists[0]
+                
+                if nums:
+                    for d, dist in zip(docs, dists):
+                        if all(n in d for n in nums):
+                            selected_doc = d
+                            selected_dist = dist
+                            break
+                            
+                if selected_dist < highest_score:
+                    highest_score = selected_dist
+                    best_doc = selected_doc
         except Exception:
             continue
             

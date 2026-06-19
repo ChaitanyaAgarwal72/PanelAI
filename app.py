@@ -73,29 +73,41 @@ def main():
         st.session_state.chat_history = []
     if "active_sidebar_view" not in st.session_state:
         st.session_state.active_sidebar_view = None
+    if "widget_key" not in st.session_state:
+        st.session_state.widget_key = 0
+    if "chatbot_clicked" not in st.session_state:
+        st.session_state.chatbot_clicked = False
+    if "open_sidebar_trigger" not in st.session_state:
+        st.session_state.open_sidebar_trigger = False
 
     import fitz
     
-    uploaded_file = st.file_uploader("Upload Research Proposal (PDF)", type=["pdf"], accept_multiple_files=False)
-    extracted_text = ""
+    uploaded_file = st.file_uploader("Upload Research Proposal (PDF)", type=["pdf"], accept_multiple_files=False, key=f"uploader_{st.session_state.widget_key}")
     
-    if uploaded_file is not None:
+    if f"proposal_{st.session_state.widget_key}" not in st.session_state:
+        st.session_state[f"proposal_{st.session_state.widget_key}"] = ""
+        
+    if uploaded_file is not None and st.session_state.get(f"last_uploaded_{st.session_state.widget_key}") != uploaded_file.name:
+        st.session_state[f"last_uploaded_{st.session_state.widget_key}"] = uploaded_file.name
         try:
             doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+            text = ""
             for page in doc:
-                extracted_text += page.get_text() + "\n"
+                text += page.get_text() + "\n"
+            st.session_state[f"proposal_{st.session_state.widget_key}"] = text
         except Exception as e:
             st.error(f"Error extracting text from PDF: {str(e)}")
 
-    proposal_text = st.text_area("Research Proposal Details", value=extracted_text, height=300, placeholder="Enter the methodology, participant details, data handling, or upload a PDF above...")
+    proposal_text = st.text_area("Research Proposal Details", key=f"proposal_{st.session_state.widget_key}", height=300, placeholder="Enter the methodology, participant details, data handling, or upload a PDF above...")
 
-    col_sub, col_clear = st.columns([2, 8])
+    col_sub, col_space, col_clear = st.columns([2, 6, 2])
     with col_clear:
-        if st.button("Clear Review", type="secondary"):
+        if st.button("Clear Review", type="secondary", use_container_width=True):
             st.session_state.final_report = None
             st.session_state.review_results = None
             st.session_state.chat_history = []
             st.session_state.active_sidebar_view = None
+            st.session_state.widget_key += 1
             if "final_citations" in st.session_state:
                 del st.session_state.final_citations
             if "conflict_responses" in st.session_state:
@@ -103,7 +115,7 @@ def main():
             st.rerun()
 
     with col_sub:
-        submit_clicked = st.button("Submit for Review", type="primary")
+        submit_clicked = st.button("Submit for Review", type="primary", use_container_width=True)
         
     if submit_clicked:
         if not proposal_text.strip():
@@ -165,11 +177,14 @@ def main():
         with col_chat:
             if st.button("💬 Chat with Chair", use_container_width=True):
                 st.session_state.active_sidebar_view = "chat"
+                st.session_state.chatbot_clicked = True
+                st.session_state.open_sidebar_trigger = True
         with col_cit:
             if st.button("📚 View Citations", use_container_width=True):
                 st.session_state.active_sidebar_view = "citations"
+                st.session_state.open_sidebar_trigger = True
                 
-        if st.session_state.active_sidebar_view is None:
+        if not st.session_state.chatbot_clicked:
             st.markdown("""
             <style>
             @keyframes bounce {
@@ -185,7 +200,7 @@ def main():
                 margin-left: 20px;
             }
             </style>
-            <div class='bouncy-text'>👈 Interrogate the Chair!</div>
+            <div class='bouncy-text'>☝️ Interrogate the Chair!</div>
             """, unsafe_allow_html=True)
         
         st.subheader("Final IRB Report")
@@ -229,25 +244,46 @@ def main():
                 st.header("💬 Interrogate the Chair")
                 st.markdown("Have questions about the final decision? Ask the Chair Agent directly!")
                 
-                for msg in st.session_state.chat_history:
-                    with st.chat_message(msg["role"]):
-                        st.markdown(msg["content"])
+                with st.form("chat_form", clear_on_submit=True):
+                    prompt = st.text_input("Ask a question about the review...")
+                    submitted = st.form_submit_button("Send ⬆️")
                         
-                if prompt := st.chat_input("Ask a question about the review..."):
+                if submitted and prompt:
                     st.session_state.chat_history.append({"role": "user", "content": prompt})
-                    with st.chat_message("user"):
-                        st.markdown(prompt)
-                    with st.chat_message("assistant"):
-                        with st.spinner("Chair Agent is thinking..."):
-                            response = asyncio.run(answer_chair_question(
-                                question=prompt,
-                                chat_history=st.session_state.chat_history[:-1], 
-                                proposal_text=proposal_text,
-                                final_report=st.session_state.final_report,
-                                llm=llm
-                            ))
-                        st.markdown(response)
+                    
+                    with st.spinner("Chair Agent is thinking..."):
+                        response = asyncio.run(answer_chair_question(
+                            question=prompt,
+                            chat_history=st.session_state.chat_history[:-1], 
+                            proposal_text=proposal_text,
+                            final_report=st.session_state.final_report,
+                            llm=llm
+                        ))
                     st.session_state.chat_history.append({"role": "assistant", "content": response})
+                    st.rerun()
+                    
+                pairs = []
+                for i in range(0, len(st.session_state.chat_history), 2):
+                    pairs.append(st.session_state.chat_history[i:i+2])
+                
+                for pair in reversed(pairs):
+                    for msg in pair:
+                        with st.chat_message(msg["role"]):
+                            st.markdown(msg["content"])
+
+    if st.session_state.get("open_sidebar_trigger", False):
+        st.session_state.open_sidebar_trigger = False
+        import streamlit.components.v1 as components
+        components.html("""
+            <script>
+            const parent = window.parent.document;
+            const sidebar = parent.querySelector('[data-testid="stSidebar"]');
+            if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
+                const btn = parent.querySelector('[data-testid="collapsedControl"]');
+                if (btn) btn.click();
+            }
+            </script>
+        """, height=0)
 
 if __name__ == "__main__":
     main()
