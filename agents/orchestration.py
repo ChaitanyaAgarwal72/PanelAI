@@ -92,9 +92,9 @@ async def run_review_workflow(proposal_text, llm=None, tracker=None):
     initial_prompt = f"Review the following research proposal:\n\n{proposal_text}"
     
     if tracker:
-        tracker.on_agent_status_change("ethics", "Reviewing proposal...")
-        tracker.on_agent_status_change("privacy", "Reviewing proposal...")
-        tracker.on_agent_status_change("methodology", "Reviewing proposal...")
+        tracker.on_agent_status_change("ethics", "Ethics Agent: Reviewing proposal...")
+        tracker.on_agent_status_change("privacy", "Privacy Agent: Reviewing proposal...")
+        tracker.on_agent_status_change("methodology", "Methodology Agent: Reviewing proposal...")
         
     tasks = [
         run_agent_task(ethics_agent, initial_prompt),
@@ -104,9 +104,9 @@ async def run_review_workflow(proposal_text, llm=None, tracker=None):
     raw_outputs = await asyncio.gather(*tasks)
     
     if tracker:
-        tracker.on_agent_status_change("ethics", "Review Complete")
-        tracker.on_agent_status_change("privacy", "Review Complete")
-        tracker.on_agent_status_change("methodology", "Review Complete")
+        tracker.on_agent_status_change("ethics", "Ethics Agent: Review Complete")
+        tracker.on_agent_status_change("privacy", "Privacy Agent: Review Complete")
+        tracker.on_agent_status_change("methodology", "Methodology Agent: Review Complete")
     
     results = {
         "Ethics Reviewer": extract_json(raw_outputs[0]),
@@ -123,7 +123,6 @@ async def run_review_workflow(proposal_text, llm=None, tracker=None):
         if tracker:
             tracker.on_conflict_detected(conflicts)
             
-        resolution_tasks = []
         for conflict in conflicts:
             responder_name = conflict["responder"]
             target_name = conflict["target"]
@@ -138,15 +137,11 @@ The {target_name} gave a lower risk ({conflict['target_initial_risk']}) and rais
 Please directly address the {target_name}'s reasoning. Do you still maintain your higher risk assessment? Cite your guidelines if relevant.
 Output a brief paragraph directly responding, and state whether you maintain or lower your risk level."""
             
-            resolution_tasks.append(
-                run_agent_task(responder_agent, resolution_prompt, expected_output="A brief paragraph responding to the conflict and stating the final risk level.")
-            )
+            resolution_raw_output = await run_agent_task(responder_agent, resolution_prompt, expected_output="A brief paragraph responding to the conflict and stating the final risk level.")
             
-        resolution_raw_outputs = await asyncio.gather(*resolution_tasks)
-        for i, conflict in enumerate(conflicts):
             conflict_responses.append({
                 "conflict": conflict,
-                "response": resolution_raw_outputs[i]
+                "response": resolution_raw_output
             })
     
     if tracker:

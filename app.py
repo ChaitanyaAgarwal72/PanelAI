@@ -70,7 +70,20 @@ def main():
     if "review_results" not in st.session_state:
         st.session_state.review_results = None
 
-    proposal_text = st.text_area("Research Proposal Details", height=300, placeholder="Enter the methodology, participant details, data handling, etc...")
+    import fitz
+    
+    uploaded_file = st.file_uploader("Upload Research Proposal (PDF)", type=["pdf"], accept_multiple_files=False)
+    extracted_text = ""
+    
+    if uploaded_file is not None:
+        try:
+            doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+            for page in doc:
+                extracted_text += page.get_text() + "\n"
+        except Exception as e:
+            st.error(f"Error extracting text from PDF: {str(e)}")
+
+    proposal_text = st.text_area("Research Proposal Details", value=extracted_text, height=300, placeholder="Enter the methodology, participant details, data handling, or upload a PDF above...")
 
     if st.button("Submit for Review", type="primary"):
         if not proposal_text.strip():

@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import PrivateAttr
 import os
 import chromadb
@@ -10,7 +11,7 @@ class RetrieveGuidelinesTool(BaseTool):
     name: str = "retrieve_guidelines"
     description: str = "Queries the designated guidelines collection and returns the most relevant chunks. Always provide a specific search query."
     collection_name: str = ""
-    _tracker = PrivateAttr(default=None)
+    _tracker: Any = PrivateAttr(default=None)
 
     def _run(self, query: str) -> str:
         client = chromadb.PersistentClient(path=os.path.join(CHROMA_DB_DIR, self.collection_name))
