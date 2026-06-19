@@ -196,3 +196,35 @@ Do NOT write grouped strings like "GDPR Articles 4, 9, and 35"."""
         tracker.on_synthesis_start("Report Complete.")
         
     return final_report, results, final_citations, conflict_responses
+
+async def answer_chair_question(question, chat_history, proposal_text, final_report, llm=None):
+    """
+    Spawns a Chair Agent to answer follow-up questions from the user based on the context.
+    """
+    chair_agent = create_chair_agent(llm)
+    
+    formatted_history = ""
+    for msg in chat_history:
+        role = "Researcher" if msg["role"] == "user" else "Chair Agent"
+        formatted_history += f"{role}: {msg['content']}\n"
+        
+    prompt = f"""You are the Chair Agent of the Institutional Review Board (IRB). 
+You have just reviewed a Research Proposal and issued a Final Report. 
+The researcher is now asking you follow-up questions about your decision.
+
+--- Original Research Proposal ---
+{proposal_text}
+
+--- Your Final Report ---
+{final_report}
+
+--- Conversation History ---
+{formatted_history}
+
+Please answer the researcher's latest question professionally, directly, and strictly based on the context above. 
+If they ask about something completely outside the scope of the IRB review, politely decline to answer.
+
+Latest Question from Researcher: {question}"""
+
+    response = await run_agent_task(chair_agent, prompt, expected_output="A professional, direct response to the researcher's question.")
+    return response

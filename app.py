@@ -7,7 +7,7 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ct
 load_dotenv()
 
 from crewai import LLM
-from agents.orchestration import run_review_workflow
+from agents.orchestration import run_review_workflow, answer_chair_question
 
 st.set_page_config(
     page_title="PanelAI - IRB Reviewer",
@@ -69,6 +69,10 @@ def main():
         st.session_state.final_report = None
     if "review_results" not in st.session_state:
         st.session_state.review_results = None
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    if "active_sidebar_view" not in st.session_state:
+        st.session_state.active_sidebar_view = None
 
     import fitz
     
@@ -85,7 +89,23 @@ def main():
 
     proposal_text = st.text_area("Research Proposal Details", value=extracted_text, height=300, placeholder="Enter the methodology, participant details, data handling, or upload a PDF above...")
 
-    if st.button("Submit for Review", type="primary"):
+    col_sub, col_clear = st.columns([2, 8])
+    with col_clear:
+        if st.button("Clear Review", type="secondary"):
+            st.session_state.final_report = None
+            st.session_state.review_results = None
+            st.session_state.chat_history = []
+            st.session_state.active_sidebar_view = None
+            if "final_citations" in st.session_state:
+                del st.session_state.final_citations
+            if "conflict_responses" in st.session_state:
+                del st.session_state.conflict_responses
+            st.rerun()
+
+    with col_sub:
+        submit_clicked = st.button("Submit for Review", type="primary")
+        
+    if submit_clicked:
         if not proposal_text.strip():
             st.warning("Please enter a research proposal to review.")
             return
@@ -139,6 +159,35 @@ def main():
             st.markdown("---")
 
     if st.session_state.final_report:
+        st.markdown("---")
+        
+        col_chat, col_cit, col_space = st.columns([2, 2, 6])
+        with col_chat:
+            if st.button("💬 Chat with Chair", use_container_width=True):
+                st.session_state.active_sidebar_view = "chat"
+        with col_cit:
+            if st.button("📚 View Citations", use_container_width=True):
+                st.session_state.active_sidebar_view = "citations"
+                
+        if st.session_state.active_sidebar_view is None:
+            st.markdown("""
+            <style>
+            @keyframes bounce {
+                0%, 100% {transform: translateX(0);}
+                50% {transform: translateX(-10px);}
+            }
+            .bouncy-text {
+                color: #ff4b4b;
+                font-weight: bold;
+                animation: bounce 1s infinite;
+                display: inline-block;
+                margin-top: -30px;
+                margin-left: 20px;
+            }
+            </style>
+            <div class='bouncy-text'>👈 Interrogate the Chair!</div>
+            """, unsafe_allow_html=True)
+        
         st.subheader("Final IRB Report")
         st.markdown(st.session_state.final_report)
         
@@ -163,17 +212,42 @@ def main():
             st.info(source_chunk)
             
         with st.sidebar:
-            st.header("Source Citations Explorer")
-            st.markdown("Click any citation below to read the original guideline text.")
+            if st.session_state.active_sidebar_view == "citations":
+                st.header("Source Citations Explorer")
+                st.markdown("Click any citation below to read the original guideline text.")
+                
+                citations_to_show = getattr(st.session_state, "final_citations", [])
+                
+                if citations_to_show:
+                    for cit in citations_to_show:
+                        if st.button(f"View: {cit[:40]}...", key=f"cit_{cit}"):
+                            open_citation_modal(cit)
+                else:
+                    st.write("No specific citations were returned for this review.")
             
-            citations_to_show = getattr(st.session_state, "final_citations", [])
-            
-            if citations_to_show:
-                for cit in citations_to_show:
-                    if st.button(f"View: {cit[:40]}...", key=f"cit_{cit}"):
-                        open_citation_modal(cit)
-            else:
-                st.write("No specific citations were returned for this review.")
+            elif st.session_state.active_sidebar_view == "chat":
+                st.header("💬 Interrogate the Chair")
+                st.markdown("Have questions about the final decision? Ask the Chair Agent directly!")
+                
+                for msg in st.session_state.chat_history:
+                    with st.chat_message(msg["role"]):
+                        st.markdown(msg["content"])
+                        
+                if prompt := st.chat_input("Ask a question about the review..."):
+                    st.session_state.chat_history.append({"role": "user", "content": prompt})
+                    with st.chat_message("user"):
+                        st.markdown(prompt)
+                    with st.chat_message("assistant"):
+                        with st.spinner("Chair Agent is thinking..."):
+                            response = asyncio.run(answer_chair_question(
+                                question=prompt,
+                                chat_history=st.session_state.chat_history[:-1], 
+                                proposal_text=proposal_text,
+                                final_report=st.session_state.final_report,
+                                llm=llm
+                            ))
+                        st.markdown(response)
+                    st.session_state.chat_history.append({"role": "assistant", "content": response})
 
 if __name__ == "__main__":
     main()
