@@ -1,3 +1,10 @@
+import sys
+try:
+    __import__('pysqlite3')
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+
 import streamlit as st
 import asyncio
 import os
@@ -58,7 +65,13 @@ def main():
     
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        st.error("GEMINI_API_KEY not found. Please set it in your .env file.")
+        try:
+            api_key = st.secrets["GEMINI_API_KEY"]
+        except Exception:
+            pass
+            
+    if not api_key:
+        st.error("GEMINI_API_KEY not found. Please set it in your .env file or Streamlit Secrets.")
         st.stop()
         
     llm = LLM(

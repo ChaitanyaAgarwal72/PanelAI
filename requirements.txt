@@ -5,3 +5,4 @@ chromadb
 pymupdf
 markdown-pdf
 python-dotenv
+pysqlite3-binary; sys_platform == 'linux'
