@@ -1,7 +1,7 @@
 streamlit
 crewai
-reportlab
-pandas
-python-dotenv
+langchain-google-genai
 chromadb
-google-genai
+pymupdf
+markdown-pdf
+python-dotenv

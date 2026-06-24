@@ -11,6 +11,7 @@ from agents.orchestration import run_review_workflow, answer_chair_question
 
 st.set_page_config(
     page_title="PanelAI - IRB Reviewer",
+    page_icon="⚖️",
     layout="wide"
 )
 
@@ -52,8 +53,8 @@ class EventTracker:
 
 
 def main():
-    st.title("PanelAI: Multi-Agent IRB Review System")
-    st.markdown("Submit your research proposal below. Our specialized AI agents (Ethics, Privacy, and Methodology) will review it against official guidelines and the Chair Agent will synthesize a final report.")
+    st.title("⚖️ PanelAI - Autonomous IRB Review System")
+    st.markdown("Upload a research proposal to have it automatically reviewed by specialized AI agents. Ethics, Privacy, and Methodology agents will review it against official guidelines and the Chair Agent will synthesize a final report.")
     
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -273,17 +274,16 @@ def main():
 
     if st.session_state.get("open_sidebar_trigger", False):
         st.session_state.open_sidebar_trigger = False
-        import streamlit.components.v1 as components
-        components.html("""
+        st.html("""
             <script>
-            const parent = window.parent.document;
-            const sidebar = parent.querySelector('[data-testid="stSidebar"]');
+            const doc = window.parent ? window.parent.document : document;
+            const sidebar = doc.querySelector('[data-testid="stSidebar"]');
             if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
-                const btn = parent.querySelector('[data-testid="collapsedControl"]');
+                const btn = doc.querySelector('[data-testid="collapsedControl"]');
                 if (btn) btn.click();
             }
             </script>
-        """, height=0)
+        """)
 
 if __name__ == "__main__":
     main()
